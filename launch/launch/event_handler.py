@@ -50,6 +50,33 @@ class BaseEventHandler:
         self.__matcher = matcher
         self.__handle_once = handle_once
 
+    @staticmethod
+    def parse(entity: 'Entity', parser: 'Parser'):
+        """
+        Return the `BaseEventHandler` action and kwargs for constructing it.
+
+        This is only intended for code reuse.
+        This class is not exposed with `expose_event_handler`.
+        """
+        # Import here for avoiding cyclic imports.
+        from .conditions import IfCondition
+        from .conditions import UnlessCondition
+        if_cond = entity.get_attr('if', optional=True)
+        unless_cond = entity.get_attr('unless', optional=True)
+        kwargs = {}
+        if if_cond is not None and unless_cond is not None:
+            raise RuntimeError("if and unless conditions can't be used simultaneously")
+        if if_cond is not None:
+            kwargs['condition'] = IfCondition(
+                predicate_expression=parser.parse_substitution(if_cond)
+            )
+        if unless_cond is not None:
+            kwargs['condition'] = UnlessCondition(
+                predicate_expression=parser.parse_substitution(unless_cond)
+            )
+
+        return BaseEventHandler, kwargs
+
     @property
     def handle_once(self):
         """Getter for handle_once flag."""

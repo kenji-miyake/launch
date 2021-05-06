@@ -34,10 +34,12 @@ except ModuleNotFoundError:
 
 from .entity import Entity
 from .expose import instantiate_action
+from .expose import instantiate_event_handler
 from .parse_substitution import parse_if_substitutions
 from .parse_substitution import parse_substitution
 from .parse_substitution import replace_escaped_characters
 from ..action import Action
+from ..event_handler import BaseEventHandler
 from ..invalid_launch_file_error import InvalidLaunchFileError
 from ..substitution import Substitution
 from ..utilities.type_utils import NormalizedValueType
@@ -88,10 +90,15 @@ class Parser:
             }
             cls.frontend_parsers = dict(sorted(parsers.items()))
 
-    def parse_action(self, entity: Entity) -> Action:
+    def parse_action(self, entity: Entity) -> List[Action]:
         """Parse an action, using its registered parsing method."""
         self.load_launch_extensions()
         return instantiate_action(entity, self)
+
+    def parse_event_handler(self, entity: Entity) -> BaseEventHandler:
+        """Parse an event_handler, using its registered parsing method."""
+        self.load_launch_extensions()
+        return instantiate_event_handler(entity, self)
 
     def parse_substitution(self, value: Text) -> List[Substitution]:
         """Parse a substitution."""

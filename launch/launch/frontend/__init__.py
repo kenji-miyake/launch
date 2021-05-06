@@ -16,7 +16,7 @@
 
 from . import type_utils
 from .entity import Entity
-from .expose import expose_action, expose_substitution
+from .expose import expose_action, expose_event_handler, expose_substitution
 from .parser import InvalidFrontendLaunchFileError, Parser
 
 
@@ -25,6 +25,7 @@ __all__ = [
     'InvalidFrontendLaunchFileError',
     'Parser',
     'expose_action',
+    'expose_event_handler',
     'expose_substitution',
     'type_utils',
 ]
