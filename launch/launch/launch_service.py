@@ -231,7 +231,7 @@ class LaunchService:
         self.__logger.debug("processing event: '{}'".format(event))
         for event_handler in tuple(self.__context._event_handlers):
             if event_handler.matches(event):
-                self.__logger.debug(
+                self.__logger.info(
                     "processing event: '{}' ✓ '{}'".format(event, event_handler))
                 self.__context._push_locals()
                 entities = event_handler.handle(event, self.__context)

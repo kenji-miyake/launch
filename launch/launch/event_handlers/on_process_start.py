@@ -23,6 +23,13 @@ from typing import Text
 from typing import TYPE_CHECKING
 from typing import Union
 
+from launch.frontend import Entity
+from launch.frontend import expose_event_handler
+from launch.frontend import Parser
+from launch_ros.events.lifecycle.lifecycle_node_matchers import \
+    matches_node_name
+
+from ..actions.emit_event import EmitEvent
 from ..event import Event
 from ..event_handler import BaseEventHandler
 from ..events.process import ProcessStarted
@@ -33,7 +40,12 @@ from ..some_actions_type import SomeActionsType
 if TYPE_CHECKING:
     from ..actions import ExecuteProcess  # noqa: F401
 
+# tmp
+from launch_ros.events.lifecycle import ChangeState
+from lifecycle_msgs.msg import Transition
 
+
+@expose_event_handler('on_process_start')
 class OnProcessStart(BaseEventHandler):
     """
     Convenience class for handling a process started event.
@@ -46,6 +58,7 @@ class OnProcessStart(BaseEventHandler):
         self,
         *,
         target_action: 'ExecuteProcess' = None,
+        target: str = None,
         on_start: Union[SomeActionsType,
                         Callable[[ProcessStarted, LaunchContext], Optional[SomeActionsType]]],
         **kwargs
@@ -59,7 +72,7 @@ class OnProcessStart(BaseEventHandler):
                 lambda event: (
                     isinstance(event, ProcessStarted) and (
                         target_action is None or
-                        event.action == target_action
+                        event.action.name == target
                     )
                 )
             ),
@@ -83,6 +96,24 @@ class OnProcessStart(BaseEventHandler):
         else:
             raise TypeError('on_start with type {} not allowed'.format(repr(on_start)))
 
+    @classmethod
+    def parse(cls, entity: Entity, parser: Parser):
+        """Return `LoadComposableNodes` action and kwargs for constructing it."""
+        _, kwargs = super().parse(entity, parser)
+
+        kwargs['target'] = entity.get_attr('target', data_type=str),
+
+        kwargs['on_start'] = entity.children
+
+        kwargs['on_start'] = EmitEvent(
+            event=ChangeState(
+                lifecycle_node_matcher=matches_node_name(entity.get_attr('target', data_type=str)),
+                transition_id=Transition.TRANSITION_CONFIGURE,
+            ),
+        ),
+
+        return cls, kwargs
+
     def handle(self, event: Event, context: LaunchContext) -> Optional[SomeActionsType]:
         """Handle the given event."""
         super().handle(event, context)
@@ -91,14 +122,14 @@ class OnProcessStart(BaseEventHandler):
             return self.__actions_on_start
         return self.__on_start(cast(ProcessStarted, event), context)
 
-    @property
+    @ property
     def handler_description(self) -> Text:
         """Return the string description of the handler."""
         if self.__actions_on_start:
             return '<actions>'
         return '{}'.format(self.__on_start)
 
-    @property
+    @ property
     def matcher_description(self) -> Text:
         """Return the string description of the matcher."""
         if self.__target_action is None:
